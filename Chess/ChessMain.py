@@ -66,8 +66,8 @@ def main():
                             move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
                         elif not gs.white_to_move:   # black move
                             #   translating clicks for black
-                            player_clicks[0] = (7-player_clicks[0][0], player_clicks[0][1])
-                            player_clicks[1] = (7-player_clicks[1][0], player_clicks[1][1])
+                            player_clicks[0] = (7-player_clicks[0][0], 7-player_clicks[0][1])
+                            player_clicks[1] = (7-player_clicks[1][0], 7-player_clicks[1][1])
                             move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
                     else:   # vs computer game
                         move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
@@ -90,6 +90,7 @@ def main():
         if move_made:  # generating moves only when valid move was made
             valid_moves = gs.get_valid_moves()
             move_made = False
+
         draw_game_state(screen, gs, two_players)
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -102,7 +103,10 @@ Responsible for all the graphics within current game state
 
 def draw_game_state(screen, gs, two_players):
     draw_board(screen, gs, two_players)  # draw squares on the board ##TODO: add piece highlights
+
     draw_pieces(screen, gs, two_players)  # draw pieces on squares
+    if two_players and not gs.white_to_move:
+        screen.blit(p.transform.rotate(screen, 180), (0, 0))
 
 
 
@@ -113,19 +117,11 @@ Draw squares
 
 def draw_board(screen, gs, two_players):
     colors = [p.Color("white"), p.Color("gray")]
-    black_colors = [p.Color("gray"), p.Color("white")]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
-            if two_players:
-                if gs.white_to_move:
-                    color = colors[((r + c) % 2)]  # this picks a color of square
-                    p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-                elif not gs.white_to_move:
-                    color = black_colors[((r + c) % 2)]  # this picks a color of square
-                    p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-            else:
-                color = colors[((r + c) % 2)]  # this picks a color of square
-                p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+            color = colors[((r + c) % 2)]
+            p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
 
 
 '''
@@ -137,16 +133,15 @@ def draw_pieces(screen, gs, two_players):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = gs.board[r][c]
-            rotated_board = gs.board[::-1]
-            rotated_piece = rotated_board[r][c]
-            if two_players:
-                if gs.white_to_move and piece != "--":  # not empty square
+            if piece != "--":
+                if two_players and not gs.white_to_move:
+                    screen.blit(p.transform.rotate(IMAGES[piece], 180), p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                else:
                     screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-                elif not gs.white_to_move and rotated_piece != "--":  # not empty square
-                    screen.blit(IMAGES[rotated_piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-            else:
-                if piece != "--":
-                    screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+
+
+
+
 
 
 if __name__ == "__main__":
