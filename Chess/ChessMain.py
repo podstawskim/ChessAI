@@ -102,12 +102,10 @@ Responsible for all the graphics within current game state
 
 
 def draw_game_state(screen, gs, two_players):
-    draw_board(screen, gs, two_players)  # draw squares on the board ##TODO: add piece highlights
-
+    draw_board(screen)  # draw squares on the board ##TODO: add piece highlights
     draw_pieces(screen, gs, two_players)  # draw pieces on squares
     if two_players and not gs.white_to_move:
         screen.blit(p.transform.rotate(screen, 180), (0, 0))
-
 
 
 '''
@@ -115,13 +113,12 @@ Draw squares
 '''
 
 
-def draw_board(screen, gs, two_players):
+def draw_board(screen):
     colors = [p.Color("white"), p.Color("gray")]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r + c) % 2)]
             p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
 
 
 '''
@@ -138,10 +135,6 @@ def draw_pieces(screen, gs, two_players):
                     screen.blit(p.transform.rotate(IMAGES[piece], 180), p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
                 else:
                     screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
-
-
-
 
 
 if __name__ == "__main__":
