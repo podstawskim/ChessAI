@@ -27,6 +27,8 @@ class GameState:
         self.in_check = False
         self.pins = []
         self.checks = []
+        self.checkmate = False
+        self.stalemate = False
         self.enpassant_possible = ()  # coordinates for a sq where en passant capture is possible
         self.current_castling_rights = Castle(True, True, True, True)
         self.castle_rights_log = [Castle(self.current_castling_rights.wks, self.current_castling_rights.wqs,
@@ -194,6 +196,18 @@ class GameState:
         else:
             # not a check so any move is fine
             moves = self.get_all_possible_moves()
+
+        # check if checkmate or stalemate occured
+        if len(moves) == 0:
+            if self.in_check:
+                self.checkmate = True
+                print("Checkmate")
+            else:
+                self.stalemate = True
+                print("Stalemate")
+        else:
+            self.stalemate = False
+            self.checkmate = True
 
         if self.white_to_move:
             self.get_castle_moves(self.white_king_location[0], self.white_king_location[1], moves)
