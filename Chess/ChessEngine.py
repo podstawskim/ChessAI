@@ -116,6 +116,20 @@ class GameState:
     '''
 
     def update_castle_rights(self, move):
+        # if rook was captured
+        if move.piece_captured == "wR":
+            if move.end_row == 7:
+                if move.end_col == 0:   # left rook captured
+                    self.current_castling_rights.wqs = False
+                elif move.end_col == 7:     # right rook captured
+                    self.current_castling_rights.wks = False
+        if move.piece_captured == "bR":
+            if move.end_row == 0:
+                if move.end_col == 0:   # left rook captured
+                    self.current_castling_rights.bqs = False
+                elif move.end_col == 7:     # right rook captured
+                    self.current_castling_rights.bks = False
+        # if king or rook was moved
         if move.piece_moved == "wK":
             self.current_castling_rights.wks = False
             self.current_castling_rights.wqs = False
@@ -363,6 +377,7 @@ class GameState:
                             moves.append(Move((r, c), (end_row, end_col), self.board))
                         elif end_piece[0] == enemy_color:  # enemy piece valid
                             moves.append(Move((r, c), (end_row, end_col), self.board))
+                            break
                         else:  # friendly piece, invalid
                             break
                 else:  # off board
@@ -418,6 +433,7 @@ class GameState:
                             moves.append(Move((r, c), (end_row, end_col), self.board))
                         elif end_piece[0] == enemy_color:
                             moves.append(Move((r, c), (end_row, end_col), self.board))
+                            break
                         else:  # friendly piece
                             break
                 else:  # off board
@@ -485,7 +501,7 @@ class GameState:
                 moves.append(Move((r, c), (r, c + 2), self.board, is_castle_move=True))
 
     '''
-    Check if squares queenside are empyt and are not under attack 
+    Check if squares queenside are empty and are not under attack 
     '''
     def get_queenside_castle_move(self, r, c, moves):
         if self.board[r][c - 1] == "--" and self.board[r][c - 2] == "--" and self.board[r][c - 3] == "--":
