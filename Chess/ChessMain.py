@@ -42,7 +42,7 @@ def main():
     running = True
     selected_sq = ()  # no sq is selected, keep track of last click of the user
     player_clicks = []  # keep tact of players clicks (two tuples [(6,4]), (4,4)])
-    two_players = True  # determine if playing against computer or another player
+    two_players = False  # determine if playing against computer or another player
 
     # main game loop
     while running:
@@ -71,9 +71,9 @@ def main():
                             move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
                     else:   # vs computer game
                         move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
-
                     for i in range(len(valid_moves)):
                         if move == valid_moves[i]:
+
                             gs.make_move(valid_moves[i])
                             move_made = True
                             selected_sq = ()  # resetting user clicks to 0
@@ -86,11 +86,9 @@ def main():
                 if e.key == p.K_z:  # undo when z is pressed
                     gs.undo_move()
                     move_made = True
-
         if move_made:  # generating moves only when valid move was made
             valid_moves = gs.get_valid_moves()
             move_made = False
-
         draw_game_state(screen, gs, two_players)
         clock.tick(MAX_FPS)
         p.display.flip()
@@ -114,7 +112,7 @@ Draw squares
 
 
 def draw_board(screen):
-    colors = [p.Color("white"), p.Color("gray")]
+    colors = [p.Color("white"), p.Color("grey")]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r + c) % 2)]
