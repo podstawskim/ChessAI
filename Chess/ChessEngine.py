@@ -197,7 +197,7 @@ class GameState:
             # not a check so any move is fine
             moves = self.get_all_possible_moves()
 
-        # check if checkmate or stalemate occured
+        # check if checkmate or stalemate occurred
         if len(moves) == 0:
             if self.in_check:
                 self.checkmate = True
@@ -207,7 +207,7 @@ class GameState:
                 print("Stalemate")
         else:
             self.stalemate = False
-            self.checkmate = True
+            self.checkmate = False
 
         if self.white_to_move:
             self.get_castle_moves(self.white_king_location[0], self.white_king_location[1], moves)
