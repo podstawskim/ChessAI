@@ -4,6 +4,7 @@ Main driver file. User input
 
 import pygame as p
 import ChessEngine
+import SmartMoveFinder
 import time
 
 p.init()
@@ -32,13 +33,22 @@ Main driver for our code. User input and updating graphics
 
 
 def main():
+
     screen = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
+
     play_as_black = True  # flag variable for playing with black pieces
     gs = ChessEngine.GameState(play_as_black=play_as_black)
-    if play_as_black:   # black is white, white is black
+
+    if play_as_black:   # playing as black
         gs.white_to_move = not gs.white_to_move
+        player_one = False  # if human is playing white, then this will be true, if ai then this will be false
+        player_two = True  # same as above but for black
+    else:
+        player_one = True  # if human is playing white, then this will be true, if ai then this will be false
+        player_two = False  # same as above but for black
+
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
     animate = False
@@ -48,15 +58,18 @@ def main():
     player_clicks = []  # keep tact of players clicks (two tuples [(6,4]), (4,4)])
     game_over = False
 
-
     # main game loop
     while running:
+        if play_as_black:
+            human_turn = (not gs.white_to_move and player_one) or (gs.white_to_move and player_two)
+        else:
+            human_turn = (gs.white_to_move and player_one) or (not gs.white_to_move and player_two)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
             # mouse handler
             elif e.type == p.MOUSEBUTTONDOWN:
-                if not game_over:
+                if not game_over and human_turn:
                     location = p.mouse.get_pos()  # (x,y) location of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
@@ -96,6 +109,13 @@ def main():
                     move_made = False
                     animate = False
                     game_over = False
+
+        #AI move finder logic
+        if not game_over and not human_turn:
+            AI_move = SmartMoveFinder.find_random_move(valid_moves)
+            gs.make_move(AI_move)
+            move_made = True
+            animate = True
 
         if move_made:  # generating moves only when valid move was made
             #if animate:
