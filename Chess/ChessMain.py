@@ -35,9 +35,10 @@ def main():
     screen = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
-    play_as_black = True
-    gs = ChessEngine.GameState()
-    gs.white_to_move = not gs.white_to_move
+    play_as_black = True  # flag variable for playing with black pieces
+    gs = ChessEngine.GameState(play_as_black=play_as_black)
+    if play_as_black:   # black is white, white is black
+        gs.white_to_move = not gs.white_to_move
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
     animate = False
@@ -59,7 +60,6 @@ def main():
                     location = p.mouse.get_pos()  # (x,y) location of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
-                    print(col, row)
                     if selected_sq == (row, col):  # the user clicked the same sq twice
                         selected_sq = ()  # deselect
                         player_clicks = []  # clear player clicks
@@ -87,7 +87,9 @@ def main():
                     if game_over:
                         game_over = not game_over
                 if e.key == p.K_r:  # reset board when 'r' is pressed
-                    gs = ChessEngine.GameState()
+                    gs = ChessEngine.GameState(play_as_black=play_as_black)
+                    if play_as_black:
+                        gs.white_to_move = not gs.white_to_move
                     valid_moves = gs.get_valid_moves()
                     selected_sq = ()
                     player_clicks = []
@@ -106,10 +108,16 @@ def main():
 
         if gs.checkmate:
             game_over = True
-            if gs.white_to_move:
-                draw_text(screen, "Black wins by checkmate")
+            if play_as_black:
+                if gs.white_to_move:
+                    draw_text(screen, "White wins by checkmate")
+                else:
+                    draw_text(screen, "Black wins by checkmate")
             else:
-                draw_text(screen, "White wins by checkmate")
+                if gs.white_to_move:
+                    draw_text(screen, "Black wins by checkmate")
+                else:
+                    draw_text(screen, "White wins by checkmate")
         elif gs.stalemate:
             game_over = True
             draw_text(screen, "Stalemate")
@@ -181,7 +189,7 @@ def animate_move(move, screen, board, clock, play_as_black):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
-    frames_per_sq = 5
+    frames_per_sq = 15
     frame_count = (abs(d_r) + abs(d_c)) * frames_per_sq
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)
@@ -195,6 +203,11 @@ def animate_move(move, screen, board, clock, play_as_black):
         if move.piece_captured != "--":
             screen.blit(IMAGES[move.piece_captured], end_sq)
         # draw moving piece
+        if play_as_black:
+            if move.piece_moved[0] == "w":
+                move.piece_moved = move.piece_moved.replace("w", "b")
+            else:
+                move.piece_moved = move.piece_moved.replace("b", "w")
         screen.blit(IMAGES[move.piece_moved], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)

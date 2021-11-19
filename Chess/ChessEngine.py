@@ -4,7 +4,7 @@ Storing all the information about current state of a chess game. Determining val
 
 
 class GameState:
-    def __init__(self):
+    def __init__(self, play_as_black=False):
         # the board is 8x8 2 D list, element is two characters: 1st- color, 2nd - piece
         # '--' represents empty square
         self.board = [
@@ -21,7 +21,7 @@ class GameState:
 
         self.move_functions = {'P': self.get_pawn_moves, 'R': self.get_rook_moves, 'N': self.get_knight_moves,
                                "B": self.get_bishop_moves, 'Q': self.get_queen_moves, 'K': self.get_king_moves}
-        self.play_as_black = True
+        self.play_as_black = play_as_black
         self.white_to_move = True
         self.move_log = []
         self.white_king_location = (7, 4)
