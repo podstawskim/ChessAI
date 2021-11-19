@@ -13,6 +13,7 @@ SQ_SIZE = HEIGHT // DIMENSION
 MAX_FPS = 15
 IMAGES = {}
 
+
 '''
 Load images, initialize global dictionary of images. This will be called exactly once
 '''
@@ -34,8 +35,9 @@ def main():
     screen = p.display.set_mode((WIDTH, HEIGHT))
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
-
+    play_as_black = True
     gs = ChessEngine.GameState()
+    gs.white_to_move = not gs.white_to_move
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
     animate = False
@@ -43,8 +45,8 @@ def main():
     running = True  # flag var for animation
     selected_sq = ()  # no sq is selected, keep track of last click of the user
     player_clicks = []  # keep tact of players clicks (two tuples [(6,4]), (4,4)])
-    two_players = True  # determine if playing against computer or another player
     game_over = False
+
 
     # main game loop
     while running:
@@ -57,14 +59,12 @@ def main():
                     location = p.mouse.get_pos()  # (x,y) location of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
+                    print(col, row)
                     if selected_sq == (row, col):  # the user clicked the same sq twice
                         selected_sq = ()  # deselect
                         player_clicks = []  # clear player clicks
                     else:
-                        if two_players and not gs.white_to_move:
-                            selected_sq = (7-row, 7-col)
-                        else:
-                            selected_sq = (row, col)
+                        selected_sq = (row, col)
                         player_clicks.append(selected_sq)  # append both for 1st and 2nd click
                     if len(player_clicks) == 2:  # after second click
                         move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
@@ -96,13 +96,13 @@ def main():
                     game_over = False
 
         if move_made:  # generating moves only when valid move was made
-            if animate:
-                animate_move(gs.move_log[-1], screen, gs.board, clock)
+            #if animate:
+                #animate_move(gs.move_log[-1], screen, gs.board, clock, play_as_black)
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False
 
-        draw_game_state(screen, gs, two_players, valid_moves, selected_sq, gs.white_to_move)
+        draw_game_state(screen, gs, valid_moves, selected_sq, play_as_black)
 
         if gs.checkmate:
             game_over = True
@@ -136,32 +136,13 @@ def highlight_squares(screen, gs, valid_moves, selected_sq):
                 if move.start_row == r and move.start_col == c:
                     screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
 
-
-'''
-Function for rotating piece images and board
-'''
-def rotate_board(screen, board):
-    for r in range(DIMENSION):
-        for c in range(DIMENSION):
-            piece = board[r][c]
-            if piece != "--":
-                screen.blit(p.transform.rotate(IMAGES[piece], 180), p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-    screen.blit(p.transform.rotate(screen, 180), (0, 0))
-
-
 '''
 Responsible for all the graphics within current game state
 '''
-def draw_game_state(screen, gs, two_players, valid_moves, selected_sq, white_to_move):
+def draw_game_state(screen, gs, valid_moves, selected_sq, play_as_black):
     draw_board(screen)  # draw squares on the board
     highlight_squares(screen, gs, valid_moves, selected_sq)
-    if two_players:
-        if not white_to_move:
-            rotate_board(screen, gs.board)  # draws rotated pieces and rotated board
-        else:
-            draw_pieces(screen, gs.board)  # draw pieces on squares
-    else:
-        draw_pieces(screen, gs.board)  # draw pieces on squares
+    draw_pieces(screen, gs.board, play_as_black)  # draw pieces on squares
 
 
 
@@ -180,18 +161,23 @@ def draw_board(screen):
 '''
 Drawing pieces based on bord variable
 '''
-def draw_pieces(screen, board):
+def draw_pieces(screen, board, play_as_black):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = board[r][c]
             if piece != "--":
+                if play_as_black:
+                    if piece[0] == "w":
+                        piece = piece.replace('w', 'b')
+                    elif piece[0] == "b":
+                        piece = piece.replace('b', 'w')
                 screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 
 '''
 Animating a move
 '''
-def animate_move(move, screen, board, clock):
+def animate_move(move, screen, board, clock, play_as_black):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
@@ -200,7 +186,7 @@ def animate_move(move, screen, board, clock):
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)
         draw_board(screen)
-        draw_pieces(screen, board)
+        draw_pieces(screen, board, play_as_black)
         # erase moved piece from end sq
         color = colors[(move.end_row + move.end_col) % 2]
         end_sq = p.Rect(move.end_col * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)

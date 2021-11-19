@@ -18,8 +18,10 @@ class GameState:
             ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"]
         ]
 
+
         self.move_functions = {'P': self.get_pawn_moves, 'R': self.get_rook_moves, 'N': self.get_knight_moves,
                                "B": self.get_bishop_moves, 'Q': self.get_queen_moves, 'K': self.get_king_moves}
+        self.play_as_black = True
         self.white_to_move = True
         self.move_log = []
         self.white_king_location = (7, 4)
@@ -307,9 +309,18 @@ class GameState:
         for r in range(len(self.board)):  # number of rows
             for c in range(len(self.board[r])):  # number of columns in given row
                 turn = self.board[r][c][0]
-                if (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
+                if self.play_as_black:
+                    if turn == "w":
+                        turn = "b"
+                    elif turn == "b":
+                        turn = "w"
+                    if (turn == 'w' and not self.white_to_move) or (turn == 'b' and self.white_to_move):
+                        piece = self.board[r][c][1]
+                        self.move_functions[piece](r, c, moves)  # calls appropriate move functions
+                elif (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
                     piece = self.board[r][c][1]
                     self.move_functions[piece](r, c, moves)  # calls appropriate move functions
+
         return moves
 
     '''
