@@ -140,18 +140,18 @@ def get_opening_move(gs):
     url = "https://explorer.lichess.ovh/masters?play=" + uci_moves
     request = requests.get(url)
     data = request.json()
+    print(data["opening"]["name"])
     uci_move_text = None
     castle_move = False
     long_castle_move = False
     if len(data["moves"]) >= 1:
         move_number = random.randint(0, len(data["moves"])-1)
-        uci_move_text = data["moves"][0]["uci"]
-        # TODO: fix castling - request notation for castling e1h1 - translate to e1g1
-        san_move_text = data["moves"][0]["san"]
+        uci_move_text = data["moves"][move_number]["uci"]
+        san_move_text = data["moves"][move_number]["san"]
         print(san_move_text)
-        if san_move_text == "O-O": # castle
+        if san_move_text == "O-O":  # castle
             castle_move = True
-        if san_move_text == "O-O-O":
+        if san_move_text == "O-O-O":    # long castle
             long_castle_move = True
         print("Database move " + uci_move_text)
     if uci_move_text:
@@ -175,6 +175,7 @@ def translate_chess_notation(move_text):
     end_col = files_to_col[move_text[2]]
     end_row = ranks_to_rows[move_text[3]]
     return start_col, start_row, end_col, end_row
+
 
 '''
 Creating move list from move log to send in get_opening_move
