@@ -80,6 +80,8 @@ class GameState:
             self.castle_rights_log.append(Castle(self.current_castling_rights.wks, self.current_castling_rights.wqs,
                                                  self.current_castling_rights.bks, self.current_castling_rights.bqs))
 
+
+
     '''
     Undo last move
     '''
@@ -114,6 +116,8 @@ class GameState:
                 else:
                     self.board[move.end_row][move.end_col - 2] = self.board[move.end_row][move.end_col + 1]
                     self.board[move.end_row][move.end_col + 1] = "--"
+            self.checkmate = False
+            self.stalemate = False
 
     '''
     Update castle rights depending on which rook/king was moved
@@ -203,10 +207,8 @@ class GameState:
         if len(moves) == 0:
             if self.in_check:
                 self.checkmate = True
-                print("Checkmate")
             else:
                 self.stalemate = True
-                print("Stalemate")
         else:
             self.stalemate = False
             self.checkmate = False
@@ -580,6 +582,9 @@ class Move:
     def get_chess_notation(self):
         # TODO: create real chess notation
         return self.get_rank_file(self.start_row, self.start_col) + self.get_rank_file(self.end_row, self.end_col)
+
+
+
 
     def get_rank_file(self, r, c):
         return self.col_to_files[c] + self.rows_to_ranks[r]

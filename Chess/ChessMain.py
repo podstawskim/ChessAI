@@ -38,7 +38,7 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
 
-    play_as_black = True  # flag variable for playing with black pieces
+    play_as_black = False  # flag variable for playing with black pieces
     gs = ChessEngine.GameState(play_as_black=play_as_black)
 
     if play_as_black:   # playing as black
@@ -112,8 +112,17 @@ def main():
 
         #AI move finder logic
         if not game_over and not human_turn:
-            AI_move = SmartMoveFinder.find_random_move(valid_moves)
-            gs.make_move(AI_move)
+            opening_move = SmartMoveFinder.get_opening_move(gs)
+            if not opening_move:
+                ai_move = SmartMoveFinder.find_best_move_minmax(gs, valid_moves)
+                print("Mini max move " + ai_move.get_chess_notation())
+                if ai_move is None:
+                    ai_move = SmartMoveFinder.find_random_move(valid_moves)
+                    print("Random ai move " + ai_move.get_chess_notation() )
+                gs.make_move(ai_move)
+
+            else:
+                gs.make_move(opening_move)
             move_made = True
             animate = True
 
