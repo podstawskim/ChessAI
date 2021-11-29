@@ -4,7 +4,7 @@ Storing all the information about current state of a chess game. Determining val
 
 
 class GameState:
-    def __init__(self, play_as_black=False):
+    def __init__(self):
         # the board is 8x8 2 D list, element is two characters: 1st- color, 2nd - piece
         # '--' represents empty square
         self.board = [
@@ -21,7 +21,6 @@ class GameState:
 
         self.move_functions = {'P': self.get_pawn_moves, 'R': self.get_rook_moves, 'N': self.get_knight_moves,
                                "B": self.get_bishop_moves, 'Q': self.get_queen_moves, 'K': self.get_king_moves}
-        self.play_as_black = play_as_black
         self.white_to_move = True
         self.move_log = []
         self.white_king_location = (7, 4)
@@ -32,6 +31,7 @@ class GameState:
         self.checkmate = False
         self.stalemate = False
         self.enpassant_possible = ()  # coordinates for a sq where en passant capture is possible
+        self.enpassant_possible_log = [self.enpassant_possible]
         self.current_castling_rights = Castle(True, True, True, True)
         self.castle_rights_log = [Castle(self.current_castling_rights.wks, self.current_castling_rights.wqs,
                                          self.current_castling_rights.bks, self.current_castling_rights.bqs)]
@@ -40,7 +40,7 @@ class GameState:
     Takes a move as a parameter and executes it (no castling, pawn promotion, en passant)
     '''
 
-    def make_move(self, move):
+    def make_move(self, move, engine_move=False):
         if self.board[move.start_row][move.start_col] != '--':  # prevents from disappearing pieces
             self.board[move.start_row][
                 move.start_col] = "--"  # we moved piece from this square so we have to make it empty
@@ -75,10 +75,13 @@ class GameState:
                 else:   # queen side castle
                     self.board[move.end_row][move.end_col+1] = self.board[move.end_row][move.end_col-2]     # moves the rook
                     self.board[move.end_row][move.end_col-2] = "--"
+
+            self.enpassant_possible_log.append(self.enpassant_possible)
             # update castling rights - whenever rook or a king moves
-            self.update_castle_rights(move)
+            self.update_castle_rights(move, engine_move)
             self.castle_rights_log.append(Castle(self.current_castling_rights.wks, self.current_castling_rights.wqs,
                                                  self.current_castling_rights.bks, self.current_castling_rights.bqs))
+
 
 
 
@@ -101,10 +104,10 @@ class GameState:
             if move.enpassant:
                 self.board[move.end_row][move.end_col] = "--"  # landing sq
                 self.board[move.start_row][move.end_col] = move.piece_captured
-                self.enpassant_possible = (move.end_row, move.end_col)
-            # undo 2 sq pawn advance
-            if move.piece_moved[1] == "P" and abs(move.start_row - move.end_row) == 2:
-                self.enpassant_possible = ()
+
+            self.enpassant_possible_log.pop()
+            self.enpassant_possible = self.enpassant_possible_log[-1]
+
             # undo castling rights
             self.castle_rights_log.pop()  # get rid of the new castle rights we are undoing
             self.current_castling_rights = self.castle_rights_log[-1]  # set the current castle rights to the last one in the list
@@ -123,39 +126,40 @@ class GameState:
     Update castle rights depending on which rook/king was moved
     '''
 
-    def update_castle_rights(self, move):
+    def update_castle_rights(self, move, engine_move=False):
         # if rook was captured
-        if move.piece_captured == "wR":
-            if move.end_row == 7:
-                if move.end_col == 0:   # left rook captured
-                    self.current_castling_rights.wqs = False
-                elif move.end_col == 7:     # right rook captured
-                    self.current_castling_rights.wks = False
-        if move.piece_captured == "bR":
-            if move.end_row == 0:
-                if move.end_col == 0:   # left rook captured
-                    self.current_castling_rights.bqs = False
-                elif move.end_col == 7:     # right rook captured
-                    self.current_castling_rights.bks = False
-        # if king or rook was moved
-        if move.piece_moved == "wK":
-            self.current_castling_rights.wks = False
-            self.current_castling_rights.wqs = False
-        elif move.piece_moved == "bK":
-            self.current_castling_rights.bks = False
-            self.current_castling_rights.bqs = False
-        elif move.piece_moved == "wR":
-            if move.start_row == 7:
-                if move.start_col == 0:  # left rook
-                    self.current_castling_rights.wqs = False
-                elif move.start_col == 7:  # right rook
-                    self.current_castling_rights.wks = False
-        elif move.piece_moved == "bR":
-            if move.start_row == 0:
-                if move.start_col == 0:  # left rook
-                    self.current_castling_rights.bqs = False
-                elif move.start_col == 7:  # right rook
-                    self.current_castling_rights.bks = False
+        if not engine_move: # this prevents some weird castling errors when playing black against engine
+            if move.piece_captured == "wR":
+                if move.end_row == 7:
+                    if move.end_col == 0:   # left rook captured
+                        self.current_castling_rights.wqs = False
+                    elif move.end_col == 7:     # right rook captured
+                        self.current_castling_rights.wks = False
+            if move.piece_captured == "bR":
+                if move.end_row == 0:
+                    if move.end_col == 0:   # left rook captured
+                        self.current_castling_rights.bqs = False
+                    elif move.end_col == 7:     # right rook captured
+                        self.current_castling_rights.bks = False
+            # if king or rook was moved
+            if move.piece_moved == "wK":
+                self.current_castling_rights.wks = False
+                self.current_castling_rights.wqs = False
+            elif move.piece_moved == "bK":
+                self.current_castling_rights.bks = False
+                self.current_castling_rights.bqs = False
+            elif move.piece_moved == "wR":
+                if move.start_row == 7:
+                    if move.start_col == 0:  # left rook
+                        self.current_castling_rights.wqs = False
+                    elif move.start_col == 7:  # right rook
+                        self.current_castling_rights.wks = False
+            elif move.piece_moved == "bR":
+                if move.start_row == 0:
+                    if move.start_col == 0:  # left rook
+                        self.current_castling_rights.bqs = False
+                    elif move.start_col == 7:  # right rook
+                        self.current_castling_rights.bks = False
 
     '''
     All moves considering checks
@@ -311,18 +315,9 @@ class GameState:
         for r in range(len(self.board)):  # number of rows
             for c in range(len(self.board[r])):  # number of columns in given row
                 turn = self.board[r][c][0]
-                if self.play_as_black:
-                    if turn == "w":
-                        turn = "b"
-                    elif turn == "b":
-                        turn = "w"
-                    if (turn == 'w' and not self.white_to_move) or (turn == 'b' and self.white_to_move):
-                        piece = self.board[r][c][1]
-                        self.move_functions[piece](r, c, moves)  # calls appropriate move functions
-                elif (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
+                if (turn == 'w' and self.white_to_move) or (turn == 'b' and not self.white_to_move):
                     piece = self.board[r][c][1]
                     self.move_functions[piece](r, c, moves)  # calls appropriate move functions
-
         return moves
 
     '''
@@ -509,14 +504,14 @@ class GameState:
     '''
 
     def get_castle_moves(self, r, c, moves):
-
         if self.sq_under_attack(r, c):  # cant castle if in check
             return
-        if (self.white_to_move and self.current_castling_rights.wks) or (
-                not self.white_to_move and self.current_castling_rights.bks):
+        # checking for kings location added after nega max algorithm implementation, because it doesnt update castle rights
+        if (self.white_to_move and self.current_castling_rights.wks and self.white_king_location == (7, 4)) or (
+                not self.white_to_move and self.current_castling_rights.bks and self.black_king_location == (0, 4)) :
             self.get_kingside_castle_move(r, c, moves)
-        if (self.white_to_move and self.current_castling_rights.wqs) or (
-                not self.white_to_move and self.current_castling_rights.bqs):
+        if (self.white_to_move and self.current_castling_rights.wqs and self.white_king_location == (7, 4)) or (
+                not self.white_to_move and self.current_castling_rights.bqs and self.black_king_location == (0, 4)):
             self.get_queenside_castle_move(r, c, moves)
 
     '''
@@ -533,7 +528,8 @@ class GameState:
     def get_queenside_castle_move(self, r, c, moves):
         if self.board[r][c - 1] == "--" and self.board[r][c - 2] == "--" and self.board[r][c - 3] == "--":
             if not self.sq_under_attack(r, c - 1) and not self.sq_under_attack(r, c - 2):
-                moves.append(Move((r, c), (r, c - 2), self.board, is_castle_move=True))
+                if self.board[1][1] != "wP" and self.board[6][1] != "bP": # weird error when queenside castling happens even if enemy pawn can take king after
+                    moves.append(Move((r, c), (r, c - 2), self.board, is_castle_move=True))
 
 
 class Castle:

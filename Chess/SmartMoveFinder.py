@@ -5,7 +5,7 @@ from ChessEngine import Move
 piece_value = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 2
+DEPTH = 4
 global next_move
 
 '''
@@ -16,9 +16,9 @@ def find_random_move(valid_moves):
 
 
 '''
-Find the best move based on material only
+Find the best move based on material only (MinMax depth 2)
 '''
-def find_best_move(gs, valid_moves):
+def find_best_move_old(gs, valid_moves):
     turn_multiplier = 1 if gs.white_to_move else -1     # determining if -1 or 1 in evaluation based on color
     opp_minmax_score = CHECKMATE
     best_move = None
@@ -46,9 +46,8 @@ def find_best_move(gs, valid_moves):
         gs.undo_move()
     return best_move
 
-
 '''
-Min max algorithm checking every single position
+Min max algorithm checking every single position (MinMax recursively)
 '''
 def find_move_minmax(gs, valid_moves, depth, white_to_move):
     # TODO: add transposition tables (move order)
@@ -60,12 +59,13 @@ def find_move_minmax(gs, valid_moves, depth, white_to_move):
         for move in valid_moves:
             gs.make_move(move)
             next_moves = gs.get_valid_moves()
+            gs.undo_move()
             score = find_move_minmax(gs, next_moves, depth-1, False)
             if score > max_score:
                 max_score = score
                 if depth == DEPTH:
                     next_move = move
-            gs.undo_move()
+
         return max_score
 
     else:
@@ -74,25 +74,66 @@ def find_move_minmax(gs, valid_moves, depth, white_to_move):
         for move in valid_moves:
             gs.make_move(move)
             next_moves = gs.get_valid_moves()
+            gs.undo_move()
             score = find_move_minmax(gs, next_moves, depth-1, True)
             if score < min_score:
                 if depth == DEPTH:
                     next_move = move
-            gs.undo_move()
+
         return min_score
 
 '''
-Helper method to make first recursive move
+Helper method to make first recursive move !!!FAULTY!!! DONT USE
 '''
-
-def find_best_move_minmax(gs, valid_moves):
+def find_best_move(gs, valid_moves):
     global next_move
     next_move = None
-    find_move_minmax(gs, valid_moves, DEPTH, gs.white_to_move)
+    random.shuffle(valid_moves)
+    find_move_negamax_alpha_beta(gs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gs.white_to_move else -1)
     return next_move
 
+
 def find_move_negamax(gs, valid_moves, depth, turn_multiplier):
-    pass
+    global next_move
+    if depth == 0:
+        return turn_multiplier * score_board(gs)
+
+    max_score = -CHECKMATE
+    for move in valid_moves:
+        gs.make_move(move, engine_move=True)
+        next_moves = gs.get_valid_moves()
+        score = -find_move_negamax(gs, next_moves, depth-1, -turn_multiplier)
+        if score > max_score:
+            max_score = score
+            if depth == DEPTH:
+                next_move = move
+        gs.undo_move()
+    return max_score
+
+'''
+Nega max algorithm with alpha beta pruning
+'''
+def find_move_negamax_alpha_beta(gs, valid_moves, depth, alpha, beta,turn_multiplier):
+    global next_move
+    if depth == 0:
+        return turn_multiplier * score_board(gs)
+
+    #TODO: move ordering
+    max_score = -CHECKMATE
+    for move in valid_moves:
+        gs.make_move(move, engine_move=True)    # true only here
+        next_moves = gs.get_valid_moves()
+        score = -find_move_negamax_alpha_beta(gs, next_moves, depth-1, -beta, -alpha, -turn_multiplier)
+        if score > max_score:
+            max_score = score
+            if depth == DEPTH:
+                next_move = move
+        gs.undo_move()
+        if max_score > alpha: # pruning happens here
+            alpha = max_score
+        if alpha >= beta:
+            break
+    return max_score
 
 '''
 Positive score - white winning, negative - black
@@ -139,8 +180,10 @@ def get_opening_move(gs):
     uci_moves = get_moves_from_move_log(gs)
     url = "https://explorer.lichess.ovh/masters?play=" + uci_moves
     request = requests.get(url)
-    data = request.json()
-    print(data["opening"]["name"])
+    if request:
+        data = request.json()
+    else:
+        return None
     uci_move_text = None
     castle_move = False
     long_castle_move = False
@@ -148,7 +191,6 @@ def get_opening_move(gs):
         move_number = random.randint(0, len(data["moves"])-1)
         uci_move_text = data["moves"][move_number]["uci"]
         san_move_text = data["moves"][move_number]["san"]
-        print(san_move_text)
         if san_move_text == "O-O":  # castle
             castle_move = True
         if san_move_text == "O-O-O":    # long castle

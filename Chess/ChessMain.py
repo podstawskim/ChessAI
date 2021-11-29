@@ -5,7 +5,6 @@ Main driver file. User input
 import pygame as p
 import ChessEngine
 import SmartMoveFinder
-import time
 
 p.init()
 WIDTH = HEIGHT = 512  # 400 is another option
@@ -38,16 +37,10 @@ def main():
     clock = p.time.Clock()
     screen.fill(p.Color("white"))
 
-    play_as_black = False  # flag variable for playing with black pieces
-    gs = ChessEngine.GameState(play_as_black=play_as_black)
 
-    if play_as_black:   # playing as black
-        gs.white_to_move = not gs.white_to_move
-        player_one = False  # if human is playing white, then this will be true, if ai then this will be false
-        player_two = True  # same as above but for black
-    else:
-        player_one = True  # if human is playing white, then this will be true, if ai then this will be false
-        player_two = False  # same as above but for black
+    gs = ChessEngine.GameState()
+    play_white = True  # if human is playing white, then this will be true, if ai then this will be false
+    play_black = False  # same as above but for black
 
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
@@ -60,10 +53,8 @@ def main():
 
     # main game loop
     while running:
-        if play_as_black:
-            human_turn = (not gs.white_to_move and player_one) or (gs.white_to_move and player_two)
-        else:
-            human_turn = (gs.white_to_move and player_one) or (not gs.white_to_move and player_two)
+
+        human_turn = (gs.white_to_move and play_white) or (not gs.white_to_move and play_black)
         for e in p.event.get():
             if e.type == p.QUIT:
                 running = False
@@ -100,9 +91,7 @@ def main():
                     if game_over:
                         game_over = not game_over
                 if e.key == p.K_r:  # reset board when 'r' is pressed
-                    gs = ChessEngine.GameState(play_as_black=play_as_black)
-                    if play_as_black:
-                        gs.white_to_move = not gs.white_to_move
+                    gs = ChessEngine.GameState()
                     valid_moves = gs.get_valid_moves()
                     selected_sq = ()
                     player_clicks = []
@@ -114,11 +103,9 @@ def main():
         if not game_over and not human_turn:
             opening_move = SmartMoveFinder.get_opening_move(gs)
             if not opening_move:
-                ai_move = SmartMoveFinder.find_best_move_minmax(gs, valid_moves)
-                print("Mini max move " + ai_move.get_chess_notation())
+                ai_move = SmartMoveFinder.find_best_move(gs, valid_moves)
                 if ai_move is None:
                     ai_move = SmartMoveFinder.find_random_move(valid_moves)
-                    print("Random ai move " + ai_move.get_chess_notation() )
                 gs.make_move(ai_move)
 
             else:
@@ -133,27 +120,35 @@ def main():
             move_made = False
             animate = False
 
-        draw_game_state(screen, gs, valid_moves, selected_sq, play_as_black)
+        draw_game_state(screen, gs, valid_moves, selected_sq, None)
 
-        if gs.checkmate:
+        if gs.checkmate or gs.stalemate:
             game_over = True
-            if play_as_black:
-                if gs.white_to_move:
-                    draw_text(screen, "White wins by checkmate")
-                else:
-                    draw_text(screen, "Black wins by checkmate")
-            else:
-                if gs.white_to_move:
-                    draw_text(screen, "Black wins by checkmate")
-                else:
-                    draw_text(screen, "White wins by checkmate")
-        elif gs.stalemate:
-            game_over = True
-            draw_text(screen, "Stalemate")
+            text = "Stalemate" if gs.stalemate else "Black wins by checkmate" if gs.white_to_move else "White wins by checkmate"
+            draw_endgame_text(screen, text)
 
         clock.tick(MAX_FPS)
         p.display.flip()
 
+'''
+Responsible for all the graphics within current game state
+'''
+def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font):
+    draw_board(screen)  # draw squares on the board
+    highlight_squares(screen, gs, valid_moves, selected_sq)
+    draw_pieces(screen, gs.board)  # draw pieces on squares
+    draw_move_log(screen, gs, move_log_font)
+
+'''
+Draw squares
+'''
+def draw_board(screen):
+    global colors
+    colors = [p.Color("white"), p.Color("grey")]
+    for r in range(DIMENSION):
+        for c in range(DIMENSION):
+            color = colors[((r + c) % 2)]
+            p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
 '''
 Highlighting selected piece and moves for that piece
@@ -174,47 +169,24 @@ def highlight_squares(screen, gs, valid_moves, selected_sq):
                     screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
 
 '''
-Responsible for all the graphics within current game state
-'''
-def draw_game_state(screen, gs, valid_moves, selected_sq, play_as_black):
-    draw_board(screen)  # draw squares on the board
-    highlight_squares(screen, gs, valid_moves, selected_sq)
-    draw_pieces(screen, gs.board, play_as_black)  # draw pieces on squares
-
-
-
-'''
-Draw squares
-'''
-def draw_board(screen):
-    global colors
-    colors = [p.Color("white"), p.Color("grey")]
-    for r in range(DIMENSION):
-        for c in range(DIMENSION):
-            color = colors[((r + c) % 2)]
-            p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
-
-'''
 Drawing pieces based on bord variable
 '''
-def draw_pieces(screen, board, play_as_black):
+def draw_pieces(screen, board):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = board[r][c]
             if piece != "--":
-                if play_as_black:
-                    if piece[0] == "w":
-                        piece = piece.replace('w', 'b')
-                    elif piece[0] == "b":
-                        piece = piece.replace('b', 'w')
                 screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
-
+'''
+Draws a move log
+'''
+def draw_move_log(screen, gs, font):
+    pass
 
 '''
 Animating a move
 '''
-def animate_move(move, screen, board, clock, play_as_black):
+def animate_move(move, screen, board, clock):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
@@ -223,7 +195,7 @@ def animate_move(move, screen, board, clock, play_as_black):
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)
         draw_board(screen)
-        draw_pieces(screen, board, play_as_black)
+        draw_pieces(screen, board)
         # erase moved piece from end sq
         color = colors[(move.end_row + move.end_col) % 2]
         end_sq = p.Rect(move.end_col * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
@@ -232,16 +204,11 @@ def animate_move(move, screen, board, clock, play_as_black):
         if move.piece_captured != "--":
             screen.blit(IMAGES[move.piece_captured], end_sq)
         # draw moving piece
-        if play_as_black:
-            if move.piece_moved[0] == "w":
-                move.piece_moved = move.piece_moved.replace("w", "b")
-            else:
-                move.piece_moved = move.piece_moved.replace("b", "w")
         screen.blit(IMAGES[move.piece_moved], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
 
-def draw_text(screen, text):
+def draw_endgame_text(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
     text_object = font.render(text, True, p.Color("Black"))
     text_location = p.Rect(0, 0, WIDTH, HEIGHT).move(WIDTH/2 - text_object.get_width()/2, HEIGHT/2 - text_object.get_height()/2)
