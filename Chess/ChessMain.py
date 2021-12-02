@@ -39,7 +39,7 @@ def main():
 
 
     gs = ChessEngine.GameState()
-    play_white = True  # if human is playing white, then this will be true, if ai then this will be false
+    play_white = False  # if human is playing white, then this will be true, if ai then this will be false
     play_black = False  # same as above but for black
 
     valid_moves = gs.get_valid_moves()
@@ -114,8 +114,8 @@ def main():
             animate = True
 
         if move_made:  # generating moves only when valid move was made
-            #if animate:
-                #animate_move(gs.move_log[-1], screen, gs.board, clock, play_as_black)
+            if animate:
+                animate_move(gs.move_log[-1], screen, gs.board, clock)
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False
