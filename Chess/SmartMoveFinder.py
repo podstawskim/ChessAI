@@ -196,10 +196,8 @@ def get_opening_move(gs):
         print("Database move " + uci_move_text)
     if uci_move_text:
         start_col, start_row, end_col, end_row = translate_chess_notation(uci_move_text)
-        if castle_move:
+        if castle_move or long_castle_move:
             return Move((start_row, start_col), (end_row, end_col-1), gs.board, is_castle_move=True)
-        elif long_castle_move:
-            return Move((start_row, start_col), (end_row, end_col+2), gs.board, is_castle_move=True)
         return Move((start_row, start_col), (end_row, end_col), gs.board)
     return None
 

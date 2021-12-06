@@ -3,6 +3,8 @@ Main driver file. User input
 """
 
 import pygame as p
+import pygame.draw
+
 import ChessEngine
 import SmartMoveFinder
 
@@ -119,7 +121,7 @@ def main():
 
         if move_made:  # generating moves only when valid move was made
             if animate:
-                animate_move(gs.move_log[-1], screen, gs.board, clock)
+                animate_move(gs.move_log[-1], screen, gs.board, clock, gs)
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False
@@ -138,7 +140,7 @@ def main():
 Responsible for all the graphics within current game state
 '''
 def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font):
-    draw_board(screen)  # draw squares on the board
+    draw_board(screen, gs)  # draw squares on the board
     highlight_squares(screen, gs, valid_moves, selected_sq)
     draw_pieces(screen, gs.board)  # draw pieces on squares
     draw_move_log(screen, gs, move_log_font)
@@ -146,13 +148,14 @@ def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font):
 '''
 Draw squares
 '''
-def draw_board(screen):
+def draw_board(screen, gs):
     global colors
-    colors = [p.Color("white"), p.Color("grey")]
+    colors = [p.Color(238,238,210), p.Color(118,150,86)]
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             color = colors[((r + c) % 2)]
             p.draw.rect(screen, color, p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+    highlight_last_move(screen, gs)
 
 '''
 Highlighting selected piece and moves for that piece
@@ -164,10 +167,10 @@ def highlight_squares(screen, gs, valid_moves, selected_sq):
             # highlighting sq
             s = p.Surface((SQ_SIZE, SQ_SIZE))
             s.set_alpha(100)    # transparency value
-            s.fill(p.Color("blue"))
+            s.fill(p.Color(186,202,68))
             screen.blit(s, (c*SQ_SIZE, r*SQ_SIZE))
             # highlight moves from tha sq
-            s.fill(p.Color("green"))
+            s.fill(p.Color(61, 72, 73))
             for move in valid_moves:
                 if move.start_row == r and move.start_col == c:
                     screen.blit(s, (move.end_col * SQ_SIZE, move.end_row * SQ_SIZE))
@@ -212,15 +215,15 @@ def draw_move_log(screen, gs, font):
 '''
 Animating a move
 '''
-def animate_move(move, screen, board, clock):
+def animate_move(move, screen, board, clock, gs):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
-    frames_per_sq = 15
+    frames_per_sq = 10
     frame_count = (abs(d_r) + abs(d_c)) * frames_per_sq
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)
-        draw_board(screen)
+        draw_board(screen, gs)
         draw_pieces(screen, board)
         # erase moved piece from end sq
         color = colors[(move.end_row + move.end_col) % 2]
@@ -237,6 +240,24 @@ def animate_move(move, screen, board, clock):
             screen.blit(IMAGES[move.piece_moved], p.Rect(c*SQ_SIZE, r*SQ_SIZE, SQ_SIZE, SQ_SIZE))
         p.display.flip()
         clock.tick(60)
+
+
+'''
+Responsible for highlighting last move made
+'''
+def highlight_last_move(screen, gs):
+    if len(gs.move_log) != 0:
+        last_move = gs.move_log[len(gs.move_log)-1] # gets last move
+        s = p.Surface((SQ_SIZE, SQ_SIZE))
+        s.fill(p.Color("yellow"))
+        s.set_alpha(100)  # transparency value
+        screen.blit(s, (last_move.start_col * SQ_SIZE, last_move.start_row * SQ_SIZE))
+        screen.blit(s, (last_move.end_col * SQ_SIZE, last_move.end_row * SQ_SIZE))
+
+
+
+
+
 
 def draw_endgame_text(screen, text):
     font = p.font.SysFont("Helvetica", 32, True, False)
