@@ -5,7 +5,7 @@ from ChessEngine import Move
 piece_value = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 CHECKMATE = 1000
 STALEMATE = 0
-DEPTH = 3
+DEPTH = 4
 global next_move
 
 '''
@@ -50,7 +50,6 @@ def find_best_move_old(gs, valid_moves):
 Min max algorithm checking every single position (MinMax recursively)
 '''
 def find_move_minmax(gs, valid_moves, depth, white_to_move):
-    # TODO: add transposition tables (move order)
     global next_move
     if depth == 0:  # i want to evaluate board
         return score_material(gs.board)
@@ -118,7 +117,6 @@ def find_move_negamax_alpha_beta(gs, valid_moves, depth, alpha, beta,turn_multip
     if depth == 0:
         return turn_multiplier * score_board(gs)
 
-    #TODO: move ordering
     max_score = -CHECKMATE
     for move in valid_moves:
         gs.make_move(move, engine_move=True)    # true only here
@@ -220,7 +218,7 @@ def translate_chess_notation(move_text):
 
 
 '''
-Creating move list from move log to send in get_opening_move
+Creating move list from move log to send into get_opening_move
 '''
 def get_moves_from_move_log(gs):
     uci_moves = ''

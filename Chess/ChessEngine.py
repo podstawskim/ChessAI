@@ -56,7 +56,8 @@ class GameState:
 
             # pawn promotion
             if move.pawn_promotion:
-                self.board[move.end_row][move.end_col] = move.piece_moved[0] + "Q"
+                piece = input("Promote to: \nQ - queen\n K - knight\n B - bishop\n R - rook\n")
+                self.board[move.end_row][move.end_col] = move.piece_moved[0] + piece.upper()
             # en passant
             # if pawn moved twice the next move can be en passant
             if move.piece_moved[1] == "P" and abs(move.start_row - move.end_row) == 2:
@@ -81,8 +82,6 @@ class GameState:
             self.update_castle_rights(move, engine_move)
             self.castle_rights_log.append(Castle(self.current_castling_rights.wks, self.current_castling_rights.wqs,
                                                  self.current_castling_rights.bks, self.current_castling_rights.bqs))
-
-
 
 
     '''
@@ -563,7 +562,7 @@ class Move:
             self.piece_captured = "bP" if self.piece_moved == "wP" else "wP"
         # castle move
         self.is_castle_move = is_castle_move
-
+        self.is_capture = self.piece_captured != "--"
         self.move_id = self.start_row * 1000 + self.start_col * 100 + self.end_row * 10 + self.end_col  # hashing to be able to compare moves
 
     '''
@@ -576,11 +575,32 @@ class Move:
         return False
 
     def get_chess_notation(self):
-        # TODO: create real chess notation
         return self.get_rank_file(self.start_row, self.start_col) + self.get_rank_file(self.end_row, self.end_col)
-
-
 
 
     def get_rank_file(self, r, c):
         return self.col_to_files[c] + self.rows_to_ranks[r]
+
+    #overriding string function
+    def __str__(self):
+        #castle move
+        if self.is_castle_move:
+            return "O-O" if self.end_col == 6 else "O-O-O"
+        end_sq = self.get_rank_file(self.end_row, self.end_col)
+        #pawn moves
+        if self.piece_moved[1] == "P":
+            if self.is_capture:
+                return self.col_to_files[self.start_col] + "x" + end_sq
+            else:
+                return end_sq
+            #TODO: pawn promotion
+        #TODO: two of the same pieces can move to a square
+        #TODO: add + for a check and # for a check
+
+        #piece moves
+        move_string = self.piece_moved[1]
+        if self.is_capture:
+            move_string += "x"
+        return move_string + end_sq
+
+
