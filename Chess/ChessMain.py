@@ -42,10 +42,9 @@ def main():
     screen.fill(p.Color("white"))
     move_log_font = p.font.SysFont("Arial", 12, False, False)
 
-
     gs = ChessEngine.GameState()
-    play_white = True  # if human is playing white, then this will be true, if ai then this will be false
-    play_black = True  # same as above but for black
+    play_white = True # if human is playing white, then this will be true, if ai then this will be false
+    play_black = False  # same as above but for black
 
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
@@ -253,10 +252,6 @@ def highlight_last_move(screen, gs):
         s.set_alpha(100)  # transparency value
         screen.blit(s, (last_move.start_col * SQ_SIZE, last_move.start_row * SQ_SIZE))
         screen.blit(s, (last_move.end_col * SQ_SIZE, last_move.end_row * SQ_SIZE))
-
-
-
-
 
 
 def draw_endgame_text(screen, text):

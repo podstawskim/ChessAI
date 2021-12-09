@@ -3,6 +3,77 @@ import requests
 from ChessEngine import Move
 
 piece_value = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
+
+
+knight_score = [
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 2, 2, 2, 2, 2, 2, 1],
+    [1, 2, 3, 3, 3, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 3, 3, 3, 2, 1],
+    [1, 2, 2, 2, 2, 2, 2, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1]
+]
+
+bishop_score = [
+    [4, 3, 2, 1, 1, 2, 3, 4],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 4, 3, 3, 4, 3, 2],
+    [3, 4, 3, 2, 2, 3, 4, 3],
+    [4, 3, 2, 1, 1, 2, 3, 4]
+]
+
+queen_score = [
+    [1, 1, 1, 3, 1, 1, 1, 1],
+    [1, 2, 3, 3, 3, 1, 1, 1],
+    [1, 4, 3, 3, 3, 4, 2, 1],
+    [1, 2, 3, 3, 3, 2, 2, 1],
+    [1, 2, 3, 3, 3, 2, 2, 1],
+    [1, 4, 3, 3, 3, 4, 2, 1],
+    [1, 2, 3, 3, 3, 1, 1, 1],
+    [1, 1, 1, 3, 1, 1, 1, 1]
+]
+
+rook_score = [
+    [4, 3, 4, 4, 4, 4, 3, 4],
+    [4, 4, 4, 4, 4, 4, 4, 4],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [4, 4, 4, 4, 4, 4, 4, 4],
+    [4, 3, 4, 4, 4, 4, 3, 4]
+]
+
+white_pawn_score = [
+    [9, 9, 9, 9, 9, 9, 9, 9],
+    [8, 8, 8, 8, 8, 8, 8, 8],
+    [5, 6, 6, 7, 7, 6, 6, 5],
+    [2, 3, 3, 5, 5, 3, 3, 2],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+]
+
+black_pawn_score = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [1, 1, 1, 0, 0, 1, 1, 1],
+    [1, 1, 2, 3, 3, 2, 1, 1],
+    [1, 2, 3, 4, 4, 3, 2, 1],
+    [2, 3, 3, 5, 5, 3, 3, 2],
+    [5, 6, 6, 7, 7, 6, 6, 5],
+    [8, 8, 8, 8, 8, 8, 8, 8],
+    [9, 9, 9, 9, 9, 9, 9, 9],
+]
+
+
+piece_position_scores =  {"N": knight_score, "B": bishop_score, "Q": queen_score, "R": rook_score, "bP": black_pawn_score, "wP": white_pawn_score}
+
 CHECKMATE = 1000
 STALEMATE = 0
 DEPTH = 4
@@ -126,6 +197,7 @@ def find_move_negamax_alpha_beta(gs, valid_moves, depth, alpha, beta,turn_multip
             max_score = score
             if depth == DEPTH:
                 next_move = move
+                print(move, score)
         gs.undo_move()
         if max_score > alpha: # pruning happens here
             alpha = max_score
@@ -147,17 +219,26 @@ def score_board(gs):
         return STALEMATE
 
     score = 0
-    for row in gs.board:
-        for sq in row:
-            if sq[0] == "w":
-                score += piece_value[sq[1]]
-            elif sq[0] == "b":
-                score -= piece_value[sq[1]]
+    for row in range(len(gs.board)):
+        for col in range(len(gs.board)):
+            sq = gs.board[row][col]
+            if sq != "--":
+                #score it positionally
+                piece_position_score = 0
+                if sq[1] != "K": # no position table for king
+                    if sq[1] == "P": # for pawns
+                        piece_position_score = piece_position_scores[sq][row][col]
+                    else: # for rest of the pieces
+                        piece_position_score = piece_position_scores["N"][row][col] * .2
+                if sq[0] == "w":
+                    score += piece_value[sq[1]] + piece_position_score
+                elif sq[0] == "b":
+                    score -= piece_value[sq[1]] + piece_position_score
     return score
 
 
 '''
-Score the board based on material
+Score the board based on material - old
 '''
 def score_material(board):
     score = 0
@@ -196,6 +277,7 @@ def get_opening_move(gs):
         print("Database move " + uci_move_text)
     if uci_move_text:
         start_col, start_row, end_col, end_row = translate_chess_notation(uci_move_text)
+        # TODO: check if move in valid moves
         if castle_move or long_castle_move:
             return Move((start_row, start_col), (end_row, end_col-1), gs.board, is_castle_move=True)
         return Move((start_row, start_col), (end_row, end_col), gs.board)
