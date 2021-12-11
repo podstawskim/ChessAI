@@ -7,6 +7,7 @@ import pygame.draw
 
 import ChessEngine
 import SmartMoveFinder
+from multiprocessing import Process, Queue
 
 p.init()
 BOARD_WIDTH = BOARD_HEIGHT = 512  # 400 is another option
@@ -43,8 +44,11 @@ def main():
     move_log_font = p.font.SysFont("Arial", 12, False, False)
 
     gs = ChessEngine.GameState()
+
+    #default setting is for two players
     play_white = True # if human is playing white, then this will be true, if ai then this will be false
-    play_black = False  # same as above but for black
+    play_black = True  # same as above but for black
+    two_players = True if play_black and play_white else False
 
     valid_moves = gs.get_valid_moves()
     move_made = False  # flag variable for when a valid move is made (so this doesnt happen every second)
@@ -54,6 +58,9 @@ def main():
     selected_sq = ()  # no sq is selected, keep track of last click of the user
     player_clicks = []  # keep tact of players clicks (two tuples [(6,4]), (4,4)])
     game_over = False
+    ai_thinking = False
+    move_finder_process = None
+    move_undone = False
 
     # main game loop
     while running:
@@ -64,7 +71,7 @@ def main():
                 running = False
             # mouse handler
             elif e.type == p.MOUSEBUTTONDOWN:
-                if not game_over and human_turn:
+                if not game_over:
                     location = p.mouse.get_pos()  # (x,y) location of mouse
                     col = location[0] // SQ_SIZE
                     row = location[1] // SQ_SIZE
@@ -75,7 +82,7 @@ def main():
                     else:
                         selected_sq = (row, col)
                         player_clicks.append(selected_sq)  # append both for 1st and 2nd click
-                    if len(player_clicks) == 2:  # after second click
+                    if len(player_clicks) == 2 and human_turn:  # after second click
                         move = ChessEngine.Move(player_clicks[0], player_clicks[1], gs.board)
                         for i in range(len(valid_moves)):
                             if move == valid_moves[i]:
@@ -91,10 +98,15 @@ def main():
             elif e.type == p.KEYDOWN:
                 if e.key == p.K_z:  # undo when z is pressed
                     gs.undo_move()
+                    selected_sq = ()
+                    player_clicks = []
                     move_made = True
                     animate = False
-                    if game_over:
-                        game_over = not game_over
+                    game_over = False
+                    if ai_thinking:
+                        move_finder_process.terminate()
+                        ai_thinking = False
+                    move_undone = True
                 if e.key == p.K_r:  # reset board when 'r' is pressed
                     gs = ChessEngine.GameState()
                     valid_moves = gs.get_valid_moves()
@@ -103,20 +115,29 @@ def main():
                     move_made = False
                     animate = False
                     game_over = False
+                    if ai_thinking:
+                        move_finder_process.terminate()
+                        ai_thinking = False
+                    move_undone = True
 
         #AI move finder logic
-        if not game_over and not human_turn:
-            opening_move = SmartMoveFinder.get_opening_move(gs)
-            if not opening_move:
-                ai_move = SmartMoveFinder.find_best_move(gs, valid_moves)
+        if not game_over and not human_turn and not move_undone:
+            if not ai_thinking:
+                ai_thinking = True
+                print("thinking...")
+                return_queue = Queue() # used to pass data between threads
+                move_finder_process = Process(target=SmartMoveFinder.find_best_move, args=(gs, valid_moves, return_queue))
+                move_finder_process.start() #call find_best_move()
+
+            if not move_finder_process.is_alive():
+                print("done thinking")
+                ai_move = return_queue.get()
                 if ai_move is None:
                     ai_move = SmartMoveFinder.find_random_move(valid_moves)
                 gs.make_move(ai_move)
-
-            else:
-                gs.make_move(opening_move)
-            move_made = True
-            animate = True
+                move_made = True
+                animate = True
+                ai_thinking = False
 
         if move_made:  # generating moves only when valid move was made
             if animate:
@@ -124,8 +145,9 @@ def main():
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False
+            move_undone = False
 
-        draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font)
+        draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, two_players, play_white, play_black)
 
         if gs.checkmate or gs.stalemate:
             game_over = True
@@ -138,7 +160,7 @@ def main():
 '''
 Responsible for all the graphics within current game state
 '''
-def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font):
+def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, two_players, play_white, play_black):
     draw_board(screen, gs)  # draw squares on the board
     highlight_squares(screen, gs, valid_moves, selected_sq)
     draw_pieces(screen, gs.board)  # draw pieces on squares
@@ -218,7 +240,7 @@ def animate_move(move, screen, board, clock, gs):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
-    frames_per_sq = 10
+    frames_per_sq = 5
     frame_count = (abs(d_r) + abs(d_c)) * frames_per_sq
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)

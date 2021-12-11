@@ -71,8 +71,20 @@ black_pawn_score = [
     [9, 9, 9, 9, 9, 9, 9, 9],
 ]
 
+king_score = [
+    [0, 0, 9, 0, 0, 0, 12, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 9, 0, 0, 0, 12, 0],
+]
 
-piece_position_scores =  {"N": knight_score, "B": bishop_score, "Q": queen_score, "R": rook_score, "bP": black_pawn_score, "wP": white_pawn_score}
+
+piece_position_scores =  {"N": knight_score, "B": bishop_score, "Q": queen_score,
+                          "R": rook_score, "bP": black_pawn_score, "wP": white_pawn_score, "K": king_score}
 
 CHECKMATE = 1000
 STALEMATE = 0
@@ -155,12 +167,15 @@ def find_move_minmax(gs, valid_moves, depth, white_to_move):
 '''
 Helper method to make first recursive move !!!FAULTY!!! DONT USE
 '''
-def find_best_move(gs, valid_moves):
+def find_best_move(gs, valid_moves, return_queue):
     global next_move
     next_move = None
     random.shuffle(valid_moves)
-    find_move_negamax_alpha_beta(gs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gs.white_to_move else -1)
-    return next_move
+    # finding opening move
+    next_move = get_opening_move(gs)
+    if not next_move:
+        find_move_negamax_alpha_beta(gs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gs.white_to_move else -1)
+    return_queue.put(next_move)
 
 
 def find_move_negamax(gs, valid_moves, depth, turn_multiplier):
@@ -225,11 +240,18 @@ def score_board(gs):
             if sq != "--":
                 #score it positionally
                 piece_position_score = 0
-                if sq[1] != "K": # no position table for king
-                    if sq[1] == "P": # for pawns
-                        piece_position_score = piece_position_scores[sq][row][col]
-                    else: # for rest of the pieces
-                        piece_position_score = piece_position_scores["N"][row][col] * .2
+                if sq[1] == "K": # no position table for king
+                    # TODO: check pieces around a king - if many ally pieces castling should be a good move
+                    piece_position_score = piece_position_scores["K"][row][col] * .3
+                    # if many pieces:
+                    #piece_position_score = piece_position_scores["K"][row][col] * .3
+                    # if less pieces:
+                    # piece_position_score = piece_position_scores["K"][row][col] * .2
+
+                elif sq[1] == "P": # for pawns
+                    piece_position_score = piece_position_scores[sq][row][col] * .1
+                else: # for rest of the pieces
+                    piece_position_score = piece_position_scores[sq[1]][row][col] * .1
                 if sq[0] == "w":
                     score += piece_value[sq[1]] + piece_position_score
                 elif sq[0] == "b":
