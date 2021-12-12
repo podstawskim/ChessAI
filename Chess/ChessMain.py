@@ -47,8 +47,8 @@ def main():
     gs = ChessEngine.GameState()
 
     #default setting is for two players
-    play_white = False # if human is playing white, then this will be true, if ai then this will be false
-    play_black = True  # same as above but for black
+    play_white = True # if human is playing white, then this will be true, if ai then this will be false
+    play_black = False  # same as above but for black
     two_players = True if play_black and play_white else False
     one_player = True if (play_black and not play_white) or (play_white and not play_black) else False
 
@@ -82,7 +82,7 @@ def main():
                         selected_sq = ()  # deselect
                         player_clicks = []  # clear player clicks
                     else:
-                        if two_players and not gs.white_to_move:
+                        if (two_players and not gs.white_to_move) or (one_player and play_black):
                             selected_sq = (7-row, 7-col)
                         else:
                             selected_sq = (row, col)
@@ -142,6 +142,9 @@ def main():
                 move_made = True
                 animate = True
                 ai_thinking = False
+                # fixing bug - after ai done thinking sometimes user had to click twice on own piece to move it
+                player_clicks = []
+                selected_sq = ()
 
         if move_made:  # generating moves only when valid move was made
             #if animate:
@@ -151,7 +154,7 @@ def main():
             animate = False
             move_undone = False
 
-        draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, two_players, play_white, play_black)
+        draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, one_player, two_players, play_white, play_black)
 
         if gs.checkmate or gs.stalemate:
             game_over = True
@@ -164,13 +167,15 @@ def main():
 '''
 Responsible for all the graphics within current game state
 '''
-def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, two_players, play_white, play_black):
+def draw_game_state(screen, gs, valid_moves, selected_sq, move_log_font, one_player, two_players, play_white, play_black):
     draw_board(screen, gs)  # draw squares on the board
     highlight_squares(screen, gs, valid_moves, selected_sq)
-    draw_pieces(screen, gs, two_players)  # draw pieces on squares
+    draw_pieces(screen, gs, one_player, two_players, play_black)  # draw pieces on squares
     if two_players and not gs.white_to_move:
-        screen.blit(p.transform.rotate(screen, 180), (-MOVE_LOG_PANEL_WIDTH, 0))
-
+        screen.blit(p.transform.rotate(screen, 180), (-MOVE_LOG_PANEL_WIDTH, 0)) # -MOVE_LOG_PANEL_WIDTH to properly display log panel
+    if one_player and play_black:
+        screen.blit(p.transform.rotate(screen, 180),
+                    (-MOVE_LOG_PANEL_WIDTH, 0))  # -MOVE_LOG_PANEL_WIDTH to properly display log panel
 
     draw_move_log(screen, gs, move_log_font)
 
@@ -209,12 +214,12 @@ def highlight_squares(screen, gs, valid_moves, selected_sq):
 '''
 Drawing pieces based on bord variable
 '''
-def draw_pieces(screen, gs, two_players):
+def draw_pieces(screen, gs, one_player, two_players, play_black):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = gs.board[r][c]
             if piece != "--":
-                if two_players and not gs.white_to_move:
+                if (two_players and not gs.white_to_move) or (one_player and play_black):
                     screen.blit(p.transform.rotate(IMAGES[piece], 180), p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
                 else:
                     screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
@@ -225,7 +230,6 @@ def draw_pieces(screen, gs, two_players):
 Draws a move log
 '''
 def draw_move_log(screen, gs, font):
-
     move_log_rect = p.Rect(BOARD_WIDTH, 0, MOVE_LOG_PANEL_WIDTH, MOVE_LOG_PANEL_HEIGHT)
     p.draw.rect(screen, p.Color("black"), move_log_rect)
     move_log = gs.move_log
