@@ -72,14 +72,14 @@ black_pawn_score = [
 ]
 
 king_score = [
-    [0, 0, 9, 0, 0, 0, 12, 0],
+    [0, 0, 9, 0, 0, 0, 10, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 9, 0, 0, 0, 12, 0],
+    [0, 0, 9, 0, 0, 0, 10, 0],
 ]
 
 
@@ -172,7 +172,7 @@ def find_best_move(gs, valid_moves, return_queue):
     next_move = None
     random.shuffle(valid_moves)
     # finding opening move
-    next_move = get_opening_move(gs)
+    next_move = get_opening_move(gs, valid_moves)
     if not next_move:
         find_move_negamax_alpha_beta(gs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gs.white_to_move else -1)
     return_queue.put(next_move)
@@ -277,7 +277,7 @@ def score_material(board):
 Responsible for retrieving opening move from masters database
 '''
 
-def get_opening_move(gs):
+def get_opening_move(gs, valid_moves):
     uci_moves = get_moves_from_move_log(gs)
     url = "https://explorer.lichess.ovh/masters?play=" + uci_moves
     request = requests.get(url)
@@ -299,10 +299,14 @@ def get_opening_move(gs):
         print("Database move " + uci_move_text)
     if uci_move_text:
         start_col, start_row, end_col, end_row = translate_chess_notation(uci_move_text)
-        # TODO: check if move in valid moves
         if castle_move or long_castle_move:
-            return Move((start_row, start_col), (end_row, end_col-1), gs.board, is_castle_move=True)
-        return Move((start_row, start_col), (end_row, end_col), gs.board)
+            move = Move((start_row, start_col), (end_row, end_col-1), gs.board, is_castle_move=True) # -1 because of some weird database translations
+            if move in valid_moves:
+                return move
+
+        move = Move((start_row, start_col), (end_row, end_col), gs.board)
+        if move in valid_moves:
+            return move
     return None
 
 

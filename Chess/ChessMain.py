@@ -47,7 +47,7 @@ def main():
     gs = ChessEngine.GameState()
 
     #default setting is for two players
-    play_white = True # if human is playing white, then this will be true, if ai then this will be false
+    play_white = False # if human is playing white, then this will be true, if ai then this will be false
     play_black = False  # same as above but for black
     two_players = True if play_black and play_white else False
     one_player = True if (play_black and not play_white) or (play_white and not play_black) else False
@@ -123,6 +123,53 @@ def main():
                         move_finder_process.terminate()
                         ai_thinking = False
                     move_undone = True
+                if e.key == p.K_t: # switch to two player game
+                    gs = ChessEngine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    selected_sq = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
+                    game_over = False
+                    two_players = True
+                    one_player = False
+                    play_black = True
+                    play_white = True
+                    if ai_thinking:
+                        move_finder_process.terminate()
+                        ai_thinking = False
+                if e.key == p.K_b: # switch to one player game as black
+                    gs = ChessEngine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    selected_sq = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
+                    game_over = False
+                    two_players = False
+                    one_player = True
+                    play_white = False
+                    play_black = True
+                    if ai_thinking:
+                        move_finder_process.terminate()
+                        ai_thinking = False
+                if e.key == p.K_w: # switch to one player game as black
+                    gs = ChessEngine.GameState()
+                    valid_moves = gs.get_valid_moves()
+                    selected_sq = ()
+                    player_clicks = []
+                    move_made = False
+                    animate = False
+                    game_over = False
+                    two_players = False
+                    one_player = True
+                    play_white = True
+                    play_black = False
+                    if ai_thinking:
+                        move_finder_process.terminate()
+                        ai_thinking = False
+
+
 
         #AI move finder logic
         if not game_over and not human_turn and not move_undone:
