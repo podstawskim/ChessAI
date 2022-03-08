@@ -22,8 +22,6 @@ IMAGES = {}
 '''
 Load images, initialize global dictionary of images. This will be called exactly once
 '''
-
-
 def load_images():
     pieces = ['wP', 'wR', 'wN', 'wB', 'wQ', 'wK', 'bP', 'bR', 'bN', 'bB', 'bQ', 'bK']
     for piece in pieces:
@@ -47,8 +45,8 @@ def main():
     gs = ChessEngine.GameState()
 
     #default setting is for two players
-    play_white = False # if human is playing white, then this will be true, if ai then this will be false
-    play_black = False  # same as above but for black
+    play_white = True # if human is playing white, then this will be true, if ai then this will be false
+    play_black = True  # same as above but for black
     two_players = True if play_black and play_white else False
     one_player = True if (play_black and not play_white) or (play_white and not play_black) else False
 
@@ -111,18 +109,18 @@ def main():
                         move_finder_process.terminate()
                         ai_thinking = False
                     move_undone = True
-                if e.key == p.K_r:  # reset board when 'r' is pressed
-                    gs = ChessEngine.GameState()
-                    valid_moves = gs.get_valid_moves()
-                    selected_sq = ()
-                    player_clicks = []
-                    move_made = False
-                    animate = False
-                    game_over = False
-                    if ai_thinking:
-                        move_finder_process.terminate()
-                        ai_thinking = False
-                    move_undone = True
+                # if e.key == p.K_r:  # reset board when 'r' is pressed
+                #     gs = ChessEngine.GameState()
+                #     valid_moves = gs.get_valid_moves()
+                #     selected_sq = ()
+                #     player_clicks = []
+                #     move_made = False
+                #     animate = False
+                #     game_over = False
+                #     if ai_thinking:
+                #         move_finder_process.terminate()
+                #         ai_thinking = False
+                #     move_undone = True
                 if e.key == p.K_t: # switch to two player game
                     gs = ChessEngine.GameState()
                     valid_moves = gs.get_valid_moves()
@@ -195,7 +193,7 @@ def main():
 
         if move_made:  # generating moves only when valid move was made
             #if animate:
-                #animate_move(gs.move_log[-1], screen, gs.board, clock, gs, two_players, play_white, play_black)
+                #animate_move(gs.move_log[-1], screen, clock, gs, one_player, two_players, play_black)
             valid_moves = gs.get_valid_moves()
             move_made = False
             animate = False
@@ -261,13 +259,17 @@ def highlight_squares(screen, gs, valid_moves, selected_sq):
 '''
 Drawing pieces based on bord variable
 '''
-def draw_pieces(screen, gs, one_player, two_players, play_black):
+def draw_pieces(screen, gs, one_player, two_players, play_black, animation=False):
     for r in range(DIMENSION):
         for c in range(DIMENSION):
             piece = gs.board[r][c]
             if piece != "--":
-                if (two_players and not gs.white_to_move) or (one_player and play_black):
+                if (two_players and not gs.white_to_move and not animation) or (one_player and play_black and not animation):
                     screen.blit(p.transform.rotate(IMAGES[piece], 180), p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                elif two_players and not gs.white_to_move and animation:
+                    screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                elif one_player and play_black and animation:
+                    screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
                 else:
                     screen.blit(IMAGES[piece], p.Rect(c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
 
@@ -303,7 +305,7 @@ def draw_move_log(screen, gs, font):
 '''
 Animating a move
 '''
-def animate_move(move, screen, board, clock, gs, two_players, play_white, play_black):
+def animate_move(move, screen, clock, gs, one_player, two_players, play_black):
     global colors
     d_r = move.end_row - move.start_row
     d_c = move.end_col - move.start_col
@@ -312,7 +314,7 @@ def animate_move(move, screen, board, clock, gs, two_players, play_white, play_b
     for frame in range(frame_count + 1):
         r, c = (move.start_row + d_r * frame/frame_count, move.start_col + d_c * frame/frame_count)
         draw_board(screen, gs)
-        draw_pieces(screen, gs, two_players)
+        draw_pieces(screen, gs, one_player, two_players, play_black, True)
         # erase moved piece from end sq
         color = colors[(move.end_row + move.end_col) % 2]
         end_sq = p.Rect(move.end_col * SQ_SIZE, move.end_row * SQ_SIZE, SQ_SIZE, SQ_SIZE)
@@ -350,7 +352,6 @@ def draw_endgame_text(screen, text):
     screen.blit(text_object, text_location)
     text_object = font.render(text, True, p.Color("Grey"))
     screen.blit(text_object, text_location.move(2, 2))
-
 
 
 if __name__ == "__main__":

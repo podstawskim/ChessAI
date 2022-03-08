@@ -1,6 +1,8 @@
 import random
 import requests
 from ChessEngine import Move
+import datetime
+
 
 piece_value = {"K": 0, "Q": 9, "R": 5, "B": 3, "N": 3, "P": 1}
 
@@ -90,6 +92,7 @@ CHECKMATE = 1000
 STALEMATE = 0
 DEPTH = 4
 global next_move
+time_log = []
 
 '''
 Find random move
@@ -165,16 +168,20 @@ def find_move_minmax(gs, valid_moves, depth, white_to_move):
         return min_score
 
 '''
-Helper method to make first recursive move !!!FAULTY!!! DONT USE
+Helper method to make first recursive move
 '''
 def find_best_move(gs, valid_moves, return_queue):
     global next_move
     next_move = None
+
     random.shuffle(valid_moves)
-    # finding opening move
+    start_time = datetime.datetime.now()
     next_move = get_opening_move(gs, valid_moves)
     if not next_move:
         find_move_negamax_alpha_beta(gs, valid_moves, DEPTH, -CHECKMATE, CHECKMATE, 1 if gs.white_to_move else -1)
+    end_time = datetime.datetime.now()
+    move_time = end_time - start_time
+    print(move_time)
     return_queue.put(next_move)
 
 
@@ -242,7 +249,7 @@ def score_board(gs):
                 piece_position_score = 0
                 if sq[1] == "K": # no position table for king
                     # TODO: check pieces around a king - if many ally pieces castling should be a good move
-                    piece_position_score = piece_position_scores["K"][row][col] * .3
+                    piece_position_score = piece_position_scores["K"][row][col] * .2
                     # if many pieces:
                     #piece_position_score = piece_position_scores["K"][row][col] * .3
                     # if less pieces:
